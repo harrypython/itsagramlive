@@ -1,6 +1,6 @@
 # It's A Live
 
-It's A Live is a Python script that create a Instagram Live and provide you a rtmp server and stream key to streaming using sofwares like OBS.
+It's A Live is a Python script that create a Instagram Live and provide you a rtmp server and stream key to streaming using sofwares like OBS-Studio.
 
 ## Installation
 
