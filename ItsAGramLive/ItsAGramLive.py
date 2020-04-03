@@ -1,13 +1,12 @@
 import argparse
 import json
-import time
-
 import pyperclip
+import time
 from instabot import Bot
 from progress.spinner import Spinner
 
 
-class ItsALive:
+class ItsAGramLive:
     bot = Bot()
     previewWidth: int = 1080
     previewHeight: int = 1920

@@ -1,6 +1,6 @@
-from ItsALive.ItsALive import ItsALive
+from ItsAGramLive.ItsAGramLive import ItsAGramLive
 
-live = ItsALive()
+live = ItsAGramLive()
 
 broadcast_id = live.create_broadcast()
 
