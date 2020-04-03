@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='ItsAGramLive',
-    version='0.1',
+    version='0.1.1',
     packages=setuptools.find_packages(),
     url='https://github.com/harrypython/itsagramlive',
     license='GPL-3.0',
