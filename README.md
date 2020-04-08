@@ -10,7 +10,7 @@ pip install ItsAGramLive
 ## Usage
 
 ```python
-from ItsAGramLive.ItsAGramLive import ItsAGramLive
+from ItsAGramLive import ItsAGramLive
 
 live = ItsAGramLive()
 
@@ -22,7 +22,7 @@ live.end_broadcast(broadcast_id)
 ```
 
 ```bash
-python3 live_broadcast.py -u yourInstagramUsername -p yourPassword
+python3 live_broadcast.py -u yourInstagramUsername -p yourPassword -proxy user:password@ip:port -share True
 ```
 
 The output will give you the RTMP Server address and the Stream key (automatically copied to your clipboard)
