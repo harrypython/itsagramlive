@@ -1,3 +1,10 @@
+<a href="https://github.com/harrypython/itsagramlive/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/license-GPLv3-blue.svg" />
+</a>
+<a href="https://www.python.org/">
+    <img src="https://img.shields.io/badge/built%20with-Python3-red.svg" />
+</a>
+
 # It's A Gram Live
 
 It's A Gram Live is a Python script that create a Instagram Live and provide you a rtmp server and stream key to streaming using sofwares like OBS-Studio.
