@@ -1,5 +1,7 @@
 import setuptools
 
+project_homepage = "https://github.com/harrypython/itsagramlive"
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -16,6 +18,11 @@ setuptools.setup(
     author_email='harrypython@protonmail.com',
     description='Its A Gram Live is a Python script that create a Instagram Live and provide you a rtmp server '
                 'and stream key to streaming using sofwares like OBS-Studio.',
+    project_urls={
+        "Example": (project_homepage + "/blob/master/live_broadcast.py"),
+        "Bug Reports": (project_homepage + "/issues"),
+        "Buy me a coffee": "https://www.buymeacoffee.com/harrypython",
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires='>=3.6',
