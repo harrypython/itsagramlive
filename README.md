@@ -34,3 +34,6 @@ Please make sure to update tests as appropriate.
 
 ## License
 [ GNU GPLv3 ](https://choosealicense.com/licenses/gpl-3.0/)
+
+
+<a href="https://www.buymeacoffee.com/harrypython" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 37px !important;" ></a>
