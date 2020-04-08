@@ -1,3 +1,4 @@
+InstagramAPI
 pyperclip
 progress
 instabot

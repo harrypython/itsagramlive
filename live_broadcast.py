@@ -1,4 +1,4 @@
-from ItsAGramLive.ItsAGramLive import ItsAGramLive
+from ItsAGramLive import ItsAGramLive
 
 live = ItsAGramLive()
 
