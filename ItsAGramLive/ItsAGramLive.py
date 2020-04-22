@@ -98,6 +98,40 @@ class ItsAGramLive:
 
                     print("Login success!\n")
                     return True
+                elif self.LastResponse.status_code == 400:
+                    if self.LastJson['two_factor_required']:
+                        print("Two factor required")
+                        # 1 - SMS, 2 - Backup codes, 3 - TOTP, 0 - ??
+                        if self.LastJson['two_factor_info']['sms_two_factor_on']:
+                            verification_method = 1
+                        # elif self.LastJson['two_factor_info']['totp_two_factor_on']:
+                        #     verification_method = 2
+                        # TODO implement totp two-factor authentication
+                        else:
+                            print("Verification method not supported. Try SMS two-factor authentication.")
+                            return False
+
+                        verification_code = input('Enter verification code: ')
+                        data = {
+                            'verification_method': verification_method,
+                            'verification_code': verification_code,
+                            'trust_this_device': 1,
+                            'two_factor_identifier': self.LastJson['two_factor_info']['two_factor_identifier'],
+                            '_csrftoken': self.LastResponse.cookies['csrftoken'],
+                            'username': self.username,
+                            'guid': self.uuid,
+                            'device_id': self.device_id,
+                        }
+                        if self.send_request('accounts/two_factor_login/', self.generate_signature(json.dumps(data)),
+                                             login=True):
+                            self.isLoggedIn = True
+                            self.username_id = self.LastJson["logged_in_user"]["pk"]
+                            self.rank_token = "%s_%s" % (self.username_id, self.uuid)
+                            self.token = self.LastResponse.cookies["csrftoken"]
+                            return True
+                        else:
+                            return False
+
         return False
 
     def send_request(self, endpoint, post=None, login=False):
@@ -165,9 +199,10 @@ class ItsAGramLive:
     def start(self):
         broadcast = self.create_broadcast()
 
-        self.start_broadcast(broadcast_id=broadcast)
+        if broadcast:
+            self.start_broadcast(broadcast_id=broadcast)
 
-        self.end_broadcast(broadcast_id=broadcast)
+            self.end_broadcast(broadcast_id=broadcast)
 
     def create_broadcast(self):
         if self.login():
