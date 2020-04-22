@@ -1,3 +1,4 @@
-InstagramAPI
-pyperclip
-progress
+pyperclip>=1.8.0
+progress>=1.5
+setuptools>=46.1.3
+requests>=2.23.0
