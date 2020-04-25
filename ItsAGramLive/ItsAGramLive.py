@@ -21,6 +21,7 @@ class ItsAGramLive:
     broadcastMessage: str = ""
     sendNotification: bool = True
     share_to_story: bool = False
+    mute_comment: bool = False
     last_comment_ts: int = 1
     username: str = None
     password: str = None
@@ -48,6 +49,9 @@ class ItsAGramLive:
         parser.add_argument("-u", "--username", type=str, help="username", required=True)
         parser.add_argument("-p", "--password", type=str, help="password", required=True)
         parser.add_argument("-share", type=bool, help="Share to Story after ended", default=self.share_to_story)
+        parser.add_argument("-mute_comments", type=bool, help="No comments", default=self.mute_comment)
+        parser.add_argument("-send_notifications", type=bool, help="Send notifications for your followers",
+                            default=self.sendNotification)
         parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
         args = parser.parse_args()
 
@@ -58,6 +62,8 @@ class ItsAGramLive:
         self.set_user(username=args.username, password=args.password)
 
         self.share_to_story = args.share
+        self.mute_comment = args.mute_comments
+        self.sendNotification = args.send_notifications
 
     def set_user(self, username, password):
         self.username = username
@@ -204,6 +210,18 @@ class ItsAGramLive:
 
             self.end_broadcast(broadcast_id=broadcast)
 
+    def set_mute_comment(self, broadcast):
+        if self.mute_comment:
+            data = json.dumps({'_uuid': self.uuid,
+                               '_uid': self.username_id,
+                               '_csrftoken': self.token})
+
+            if self.send_request(endpoint='live/{}/mute_comment/'.format(broadcast),
+                                 post=self.generate_signature(data)):
+                print("Comments muted")
+                return True
+        return False
+
     def create_broadcast(self):
         if self.login():
             data = json.dumps({'_uuid': self.uuid,
@@ -229,6 +247,8 @@ class ItsAGramLive:
                 print("Server: {}".format(server))
                 pyperclip.copy(stream_key)
                 print("Stream Key (copied to clipboard): {}".format(stream_key))
+
+                self.set_mute_comment(broadcast=broadcast_id)
 
             else:
                 return False

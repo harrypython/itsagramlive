@@ -25,7 +25,7 @@ live.start()
 ```
 
 ```bash
-python3 live_broadcast.py -u yourInstagramUsername -p yourPassword -proxy user:password@ip:port -share True
+python3 live_broadcast.py -u yourInstagramUsername -p yourPassword -proxy user:password@ip:port -share True -mute_comments False -send_notifications True
 ```
 
 The output will give you the RTMP Server address and the Stream key (automatically copied to your clipboard)
