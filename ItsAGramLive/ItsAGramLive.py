@@ -8,7 +8,6 @@ import uuid
 
 import pyperclip
 import requests
-from progress.spinner import Spinner
 # Turn off InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -21,8 +20,8 @@ class ItsAGramLive:
     broadcastMessage: str = ""
     sendNotification: bool = True
     share_to_story: bool = False
-    mute_comment: bool = False
     last_comment_ts: int = 1
+    is_running: bool = False
     username: str = None
     password: str = None
     username_id: str = None
@@ -33,14 +32,27 @@ class ItsAGramLive:
     LastResponse = None
     s = requests.Session()
     isLoggedIn: bool = False
+    broadcast_id: int = None
+    stream_key: str = None
+    stream_server: str = None
+
+    DEVICE_SETS = {
+        "app_version": "136.0.0.34.124",
+        "android_version": "28",
+        "android_release": "9.0",
+        "dpi": "640dpi",
+        "resolution": "1440x2560",
+        "manufacturer": "samsung",
+        "device": "SM-G965F",
+        "model": "star2qltecs",
+        "cpu": "samsungexynos9810",
+        "version_code": "208061712",
+    }
 
     API_URL = 'https://i.instagram.com/api/v1/'
-    DEVICE_SETS = {'manufacturer': 'Xiaomi',
-                   'model': 'HM 1SW',
-                   'android_version': 18,
-                   'android_release': '4.3'}
-    USER_AGENT = 'Instagram 10.26.0 Android ({android_version}/{android_release}; 320dpi; 720x1280; {manufacturer}; {model}; armani; qcom; en_US)'.format(
-        **DEVICE_SETS)
+
+    USER_AGENT = 'Instagram {app_version} Android ({android_version}/{android_release}; {dpi}; {resolution}; ' \
+                 '{manufacturer}; {model}; armani; {cpu}; en_US)'.format(**DEVICE_SETS)
     IG_SIG_KEY = '4f8732eb9ba7d1c8e8897a75d6474d4eb3f5279137431b2aafb71fafe2abe178'
     SIG_KEY_VERSION = '4'
 
@@ -48,10 +60,6 @@ class ItsAGramLive:
         parser = argparse.ArgumentParser(add_help=True)
         parser.add_argument("-u", "--username", type=str, help="username", required=True)
         parser.add_argument("-p", "--password", type=str, help="password", required=True)
-        parser.add_argument("-share", type=bool, help="Share to Story after ended", default=self.share_to_story)
-        parser.add_argument("-mute_comments", type=bool, help="No comments", default=self.mute_comment)
-        parser.add_argument("-send_notifications", type=bool, help="Send notifications for your followers",
-                            default=self.sendNotification)
         parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
         args = parser.parse_args()
 
@@ -60,10 +68,6 @@ class ItsAGramLive:
         self.device_id = self.generate_device_id(m.hexdigest())
 
         self.set_user(username=args.username, password=args.password)
-
-        self.share_to_story = args.share
-        self.mute_comment = args.mute_comments
-        self.sendNotification = args.send_notifications
 
     def set_user(self, username, password):
         self.username = username
@@ -85,8 +89,8 @@ class ItsAGramLive:
 
     def login(self, force=False):
         if not self.isLoggedIn or force:
-            if self.send_request('si/fetch_headers/?challenge_type=signup&guid=' + self.generate_UUID(False), None,
-                                 True):
+            if self.send_request(endpoint='si/fetch_headers/?challenge_type=signup&guid=' + self.generate_UUID(False),
+                                 login=True):
 
                 data = {'phone_id': self.generate_UUID(True),
                         '_csrftoken': self.LastResponse.cookies['csrftoken'],
@@ -96,49 +100,50 @@ class ItsAGramLive:
                         'password': self.password,
                         'login_attempt_count': '0'}
 
-                if self.send_request('accounts/login/', self.generate_signature(json.dumps(data)), True):
-                    self.isLoggedIn = True
-                    self.username_id = self.LastJson["logged_in_user"]["pk"]
-                    self.rank_token = "%s_%s" % (self.username_id, self.uuid)
-                    self.token = self.LastResponse.cookies["csrftoken"]
-
-                    print("Login success!\n")
-                    return True
-                elif self.LastResponse.status_code == 400:
-                    if self.LastJson['two_factor_required']:
-                        print("Two factor required")
-                        # 1 - SMS, 2 - Backup codes, 3 - TOTP, 0 - ??
-                        if self.LastJson['two_factor_info']['sms_two_factor_on']:
-                            verification_method = 1
-                        # elif self.LastJson['two_factor_info']['totp_two_factor_on']:
-                        #     verification_method = 2
-                        # TODO implement totp two-factor authentication
-                        else:
-                            print("Verification method not supported. Try SMS two-factor authentication.")
-                            return False
-
-                        verification_code = input('Enter verification code: ')
-                        data = {
-                            'verification_method': verification_method,
-                            'verification_code': verification_code,
-                            'trust_this_device': 1,
-                            'two_factor_identifier': self.LastJson['two_factor_info']['two_factor_identifier'],
-                            '_csrftoken': self.LastResponse.cookies['csrftoken'],
-                            'username': self.username,
-                            'guid': self.uuid,
-                            'device_id': self.device_id,
-                        }
-                        if self.send_request('accounts/two_factor_login/', self.generate_signature(json.dumps(data)),
-                                             login=True):
+                if self.send_request('accounts/login/', post=self.generate_signature(json.dumps(data)), login=True):
+                    if "two_factor_required" not in self.LastJson:
+                        self.isLoggedIn = True
+                        self.username_id = self.LastJson["logged_in_user"]["pk"]
+                        self.rank_token = "%s_%s" % (self.username_id, self.uuid)
+                        self.token = self.LastResponse.cookies["csrftoken"]
+                        return True
+                    else:
+                        if self.two_factor():
                             self.isLoggedIn = True
                             self.username_id = self.LastJson["logged_in_user"]["pk"]
                             self.rank_token = "%s_%s" % (self.username_id, self.uuid)
                             self.token = self.LastResponse.cookies["csrftoken"]
                             return True
-                        else:
-                            return False
 
         return False
+
+    def two_factor(self):
+        print("Two factor required")
+        # 1 - SMS, 2 - Backup codes, 3 - TOTP, 0 - ??
+        if self.LastJson['two_factor_info']['sms_two_factor_on']:
+            verification_method = 1
+        elif self.LastJson['two_factor_info']['totp_two_factor_on']:
+            verification_method = 0
+        else:
+            print("Verification method not supported. Try SMS two-factor authentication.")
+            return False
+
+        verification_code = input('Enter verification code: ')
+        data = {
+            'verification_method': verification_method,
+            'verification_code': verification_code,
+            'trust_this_device': 1,
+            'two_factor_identifier': self.LastJson['two_factor_info']['two_factor_identifier'],
+            '_csrftoken': self.LastResponse.cookies['csrftoken'],
+            'username': self.username,
+            'device_id': self.device_id,
+            'guid': self.uuid,
+        }
+        if self.send_request('accounts/two_factor_login/', self.generate_signature(json.dumps(data)),
+                             login=True):
+            return True
+        else:
+            return False
 
     def send_request(self, endpoint, post=None, login=False):
         verify = False  # don't show request warning
@@ -161,10 +166,10 @@ class ItsAGramLive:
                     response = self.s.get(self.API_URL + endpoint, verify=verify)
                 break
             except Exception as e:
-                print('Except on SendRequest (wait 60 sec and resend): ' + str(e))
+                print('Except on SendRequest (wait 60 sec and resend): {}'.format(str(e)))
                 time.sleep(60)
 
-        if response.status_code == 200:
+        if response.status_code in [200, 400]:
             self.LastResponse = response
             self.LastJson = json.loads(response.text)
             return True
@@ -180,14 +185,7 @@ class ItsAGramLive:
             return False
 
     def set_proxy(self, proxy=None):
-        """
-        Set proxy for all requests::
-
-        Proxy format - user:password@ip:port
-        """
-
         if proxy is not None:
-            print('Set proxy!')
             proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy}
             self.s.proxies.update(proxies)
 
@@ -203,87 +201,199 @@ class ItsAGramLive:
             self.IG_SIG_KEY.encode('utf-8'), data.encode('utf-8'), hashlib.sha256).hexdigest() + '.' + parsed_data
 
     def start(self):
-        broadcast = self.create_broadcast()
+        print('logging in...')
+        if self.login():
+            print('logged in!!')
+            print('Generating stream upload_url and keys...\n')
+            if self.create_broadcast():
+                print("Broadcast ID: {}".format(self.broadcast_id))
+                print("Server URL: {}".format(self.stream_server))
+                print("Server Key: {}".format(self.stream_key))
 
-        if broadcast:
-            self.start_broadcast(broadcast_id=broadcast)
+                input('Press Enter after your setting your streaming software.')
+                if self.start_broadcast():
+                    self.is_running = True
 
-            self.end_broadcast(broadcast_id=broadcast)
+                    while self.is_running:
+                        cmd = input('command> ')
 
-    def set_mute_comment(self, broadcast):
-        if self.mute_comment:
-            data = json.dumps({'_uuid': self.uuid,
-                               '_uid': self.username_id,
-                               '_csrftoken': self.token})
+                        if cmd == "stop":
+                            self.stop()
 
-            if self.send_request(endpoint='live/{}/mute_comment/'.format(broadcast),
-                                 post=self.generate_signature(data)):
-                print("Comments muted")
-                return True
+                        elif cmd == "mute comments":
+                            self.mute_comments()
+
+                        elif cmd == "unmute comments":
+                            self.unmute_comment()
+
+                        elif cmd == 'info':
+                            self.live_info()
+
+                        elif cmd == 'viewers':
+                            users, ids = self.get_viewer_list()
+                            print(users)
+
+                        elif cmd[:4] == 'chat':
+                            to_send = cmd[5:]
+                            if to_send:
+                                self.send_comment(to_send)
+                            else:
+                                print('usage: chat <text to chat>')
+
+                        elif cmd == 'wave':
+                            users, ids = self.get_viewer_list()
+                            for i in range(len(users)):
+                                print(f'{i + 1}. {users[i]}')
+                            print('Type number according to user e.g 1.')
+                            while True:
+                                cmd = input('number> ')
+
+                                if cmd == 'back':
+                                    break
+                                try:
+                                    user_id = int(cmd) - 1
+                                    self.wave(ids[user_id])
+                                    break
+                                except:
+                                    print('Please type number e.g 1')
+
+                        else:
+                            print(
+                                'Available commands:\n\t '
+                                '"stop"\n\t '
+                                '"mute comments"\n\t '
+                                '"unmute comments"\n\t '
+                                '"info"\n\t '
+                                '"viewers"\n\t '
+                                '"chat"\n\t '
+                                '"wave"\n\t')
+
+    def get_viewer_list(self):
+        if self.send_request("live/{}/get_viewer_list/".format(self.broadcast_id)):
+            users = []
+            ids = []
+            for user in self.LastJson['users']:
+                users.append(f"{user['username']}")
+                ids.append(f"{user['pk']}")
+
+            return users, ids
+
+    def wave(self, user_id):
+        data = json.dumps(
+            {'_uid': self.username_id, '_uuid': self.uuid, '_csrftoken': self.token, 'viewer_id': user_id})
+
+        if self.send_request('live/{}/wave/'.format(self.broadcast_id), post=self.generate_signature(data)):
+            return True
         return False
 
+    def live_info(self):
+        if self.send_request("live/{}/info/".format(self.broadcast_id)):
+            viewer_count = self.LastJson['viewer_count']
+
+            print("[*]Broadcast ID: {}".format(self.broadcast_id))
+            print("[*]Server URL: {}".format(self.stream_server))
+            print("[*]Stream Key: {}".format(self.stream_key))
+            print("[*]Viewer Count: {}".format(viewer_count))
+            print("[*]Status: {}".format(self.LastJson['broadcast_status']))
+
+    def mute_comments(self):
+        data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
+        if self.send_request(endpoint='live/{}/mute_comment/'.format(self.broadcast_id),
+                             post=self.generate_signature(data)):
+            print("Comments muted")
+            return True
+
+        return False
+
+    def unmute_comment(self):
+        data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
+        if self.send_request(endpoint='live/{}/unmute_comment/'.format(self.broadcast_id),
+                             post=self.generate_signature(data)):
+            print("Comments un-muted")
+            return True
+
+        return False
+
+    def send_comment(self, msg):
+        data = json.dumps({
+            'idempotence_token': self.generate_UUID(True),
+            'comment_text': msg,
+            'live_or_vod': 1,
+            'offset_to_video_start': 0
+        })
+
+        if self.send_request("live/{}/comment/".format(self.broadcast_id), post=self.generate_signature(data)):
+            if self.LastJson['status'] == 'ok':
+                return True
+
     def create_broadcast(self):
-        if self.login():
-            data = json.dumps({'_uuid': self.uuid,
-                               '_uid': self.username_id,
-                               'preview_height': self.previewHeight,
-                               'preview_width': self.previewWidth,
-                               'broadcast_message': self.broadcastMessage,
-                               'broadcast_type': 'RTMP',
-                               'internal_only': 0,
-                               '_csrftoken': self.token})
+        data = json.dumps({'_uuid': self.uuid,
+                           '_uid': self.username_id,
+                           'preview_height': self.previewHeight,
+                           'preview_width': self.previewWidth,
+                           'broadcast_message': self.broadcastMessage,
+                           'broadcast_type': 'RTMP',
+                           'internal_only': 0,
+                           '_csrftoken': self.token})
 
-            if self.send_request(endpoint='live/create/', post=self.generate_signature(data)):
-                last_json = self.LastJson
-                broadcast_id = last_json['broadcast_id']
-                upload_url = last_json['upload_url']
+        if self.send_request(endpoint='live/create/', post=self.generate_signature(data)):
+            last_json = self.LastJson
+            self.broadcast_id = last_json['broadcast_id']
 
-                splited = upload_url.split(str(broadcast_id))
+            upload_url = last_json['upload_url'].split(str(self.broadcast_id))
 
-                stream_key = "{}{}".format(str(broadcast_id), splited[1])
+            self.stream_server = upload_url[0]
+            self.stream_key = "{}{}".format(str(self.broadcast_id), upload_url[1])
 
-                server = splited[0]
+            pyperclip.copy(self.stream_key)
 
-                print("Server: {}".format(server))
-                pyperclip.copy(stream_key)
-                print("Stream Key (copied to clipboard): {}".format(stream_key))
+            return True
 
-                self.set_mute_comment(broadcast=broadcast_id)
+        else:
 
-            else:
-                return False
+            return False
 
+    def start_broadcast(self):
+        data = json.dumps({'_uuid': self.uuid,
+                           '_uid': self.username_id,
+                           'should_send_notifications': 1,
+                           '_csrftoken': self.token})
+
+        if self.send_request(endpoint='live/' + str(self.broadcast_id) + '/start/', post=self.generate_signature(data)):
+            return True
         else:
             return False
 
-        return broadcast_id
-
-    def start_broadcast(self, broadcast_id):
-        data = json.dumps({'_uuid': self.uuid,
-                           '_uid': self.username_id,
-                           'should_send_notifications': int(self.sendNotification),
-                           '_csrftoken': self.token})
-
-        if self.send_request(endpoint='live/' + str(broadcast_id) + '/start/', post=self.generate_signature(data)):
-
-            print('CTRL+C to quit.')
-            spinner = Spinner(" - ")
-            try:
-                while True:
-                    spinner.next()
-            except KeyboardInterrupt:
-                spinner.finish()
-                pass
-            except Exception as error:
-                print(error)
-                self.end_broadcast(broadcast_id)
-
-    def end_broadcast(self, broadcast_id):
+    def end_broadcast(self):
         data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
-        if self.send_request(endpoint='live/' + str(broadcast_id) + '/end_broadcast/',
+        if self.send_request(endpoint='live/' + str(self.broadcast_id) + '/end_broadcast/',
                              post=self.generate_signature(data)):
-            if self.share_to_story:
-                self.send_request(endpoint='live/' + str(broadcast_id) + '/add_to_post_live/',
-                                  post=self.generate_signature(data))
+            return True
+        return False
 
-        print('Ending Broadcasting')
+    def add_to_post_live(self):
+        data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
+        if self.send_request(endpoint='live/{}/add_to_post_live/'.format(self.broadcast_id),
+                             post=self.generate_signature(data)):
+            print('Live Posted to Story!')
+            return True
+        return False
+
+    def delete_post_live(self):
+        data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
+        if self.send_request(endpoint='live/{}/delete_post_live/'.format(self.broadcast_id),
+                             post=self.generate_signature(data)):
+            return True
+        return False
+
+    def stop(self):
+        self.end_broadcast()
+        print('Save Live replay to story ? <y/n>')
+        save = input('command> ')
+        if save == 'y':
+            self.add_to_post_live()
+        else:
+            self.delete_post_live()
+        print('Exiting...')
+        self.is_running = False
+        print('Bye bye')
