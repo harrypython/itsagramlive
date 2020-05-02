@@ -233,6 +233,9 @@ class ItsAGramLive:
                             users, ids = self.get_viewer_list()
                             print(users)
 
+                        elif cmd == 'comments':
+                            self.get_comments()
+
                         elif cmd[:4] == 'chat':
                             to_send = cmd[5:]
                             if to_send:
@@ -397,3 +400,8 @@ class ItsAGramLive:
         print('Exiting...')
         self.is_running = False
         print('Bye bye')
+
+    def get_comments(self):
+        if self.send_request("live/{}/get_comment/".format(self.broadcast_id)):
+            for comment in self.LastJson['comments']:
+                print(f"{comment['user']['username']} has posted a new comment: {comment['text']}")
