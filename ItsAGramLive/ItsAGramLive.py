@@ -233,7 +233,7 @@ class ItsAGramLive:
                             users, ids = self.get_viewer_list()
                             print(users)
 
-                        elif cmd == 'get_comments':
+                        elif cmd == 'comments':
                             self.get_comments()
 
                         elif cmd[:4] == 'chat':
