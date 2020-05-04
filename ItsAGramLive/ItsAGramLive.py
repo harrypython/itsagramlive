@@ -119,18 +119,10 @@ class ItsAGramLive:
 
     def two_factor(self):
         print("Two factor required")
-        # 1 - SMS, 2 - Backup codes, 3 - TOTP, 0 - ??
-        if self.LastJson['two_factor_info']['sms_two_factor_on']:
-            verification_method = 1
-        elif self.LastJson['two_factor_info']['totp_two_factor_on']:
-            verification_method = 0
-        else:
-            print("Verification method not supported. Try SMS two-factor authentication.")
-            return False
-
+        # verification_method': 0 works for sms and TOTP. why? ¯\_ಠ_ಠ_/¯
         verification_code = input('Enter verification code: ')
         data = {
-            'verification_method': verification_method,
+            'verification_method': 0,
             'verification_code': verification_code,
             'trust_this_device': 1,
             'two_factor_identifier': self.LastJson['two_factor_info']['two_factor_identifier'],
