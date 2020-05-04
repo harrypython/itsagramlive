@@ -38,6 +38,8 @@ Allow viewers do comments
 List viewers
 - **chat**
 Send a comment
+- **comments**
+Get the list of comments
 - **wave**
 Wave to a viewer
 - **stop**
