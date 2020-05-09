@@ -118,7 +118,6 @@ class ItsAGramLive:
         return False
 
     def two_factor(self):
-        print("Two factor required")
         # verification_method': 0 works for sms and TOTP. why? ¯\_ಠ_ಠ_/¯
         verification_code = input('Enter verification code: ')
         data = {
@@ -131,8 +130,7 @@ class ItsAGramLive:
             'device_id': self.device_id,
             'guid': self.uuid,
         }
-        if self.send_request('accounts/two_factor_login/', self.generate_signature(json.dumps(data)),
-                             login=True):
+        if self.send_request('accounts/two_factor_login/', self.generate_signature(json.dumps(data)), login=True):
             return True
         else:
             return False
@@ -153,27 +151,29 @@ class ItsAGramLive:
         while True:
             try:
                 if post is not None:
-                    response = self.s.post(self.API_URL + endpoint, data=post, verify=verify)
+                    self.LastResponse = self.s.post(self.API_URL + endpoint, data=post, verify=verify)
                 else:
-                    response = self.s.get(self.API_URL + endpoint, verify=verify)
+                    self.LastResponse = self.s.get(self.API_URL + endpoint, verify=verify)
+
+                self.LastJson = json.loads(self.LastResponse.text)
+
                 break
             except Exception as e:
-                print('Except on SendRequest (wait 60 sec and resend): {}'.format(str(e)))
+                print('* Except on SendRequest (wait 60 sec and resend): {}'.format(str(e)))
                 time.sleep(60)
 
-        if response.status_code in [200, 400]:
-            self.LastResponse = response
-            self.LastJson = json.loads(response.text)
+        if self.LastResponse.status_code == 200:
             return True
+        elif 'two_factor_required' in self.LastJson and self.LastResponse.status_code == 400:
+            # even the status code isn't 200 return True if the 2FA is required
+            if self.LastJson['two_factor_required']:
+                print("Two factor required")
+                return True
         else:
-            print("Request return " + str(response.status_code) + " error!")
-            # for debugging
-            try:
-                self.LastResponse = response
-                self.LastJson = json.loads(response.text)
-                print(self.LastJson)
-            except:
-                pass
+            error_message = " - "
+            if "message" in self.LastJson:
+                error_message = self.LastJson['message']
+            print('* ERROR({}): {}'.format(self.LastResponse.status_code, error_message))
             return False
 
     def set_proxy(self, proxy=None):
@@ -193,16 +193,18 @@ class ItsAGramLive:
             self.IG_SIG_KEY.encode('utf-8'), data.encode('utf-8'), hashlib.sha256).hexdigest() + '.' + parsed_data
 
     def start(self):
-        print('logging in...')
+        print("Let's do it!")
         if self.login():
-            print('logged in!!')
-            print('Generating stream upload_url and keys...\n')
-            if self.create_broadcast():
-                print("Broadcast ID: {}".format(self.broadcast_id))
-                print("Server URL: {}".format(self.stream_server))
-                print("Server Key: {}".format(self.stream_key))
+            print("You'r logged in")
 
-                input('Press Enter after your setting your streaming software.')
+            if self.create_broadcast():
+                print("Broadcast ID: {}")
+                print("* Broadcast ID: {}".format(self.broadcast_id))
+                print("* Server URL: {}".format(self.stream_server))
+                print("* Server Key: {}".format(self.stream_key))
+                print("The stream key was automatically copied to your clipboard")
+
+                print("Press Enter after your setting your streaming software.")
                 if self.start_broadcast():
                     self.is_running = True
 
