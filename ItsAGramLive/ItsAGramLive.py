@@ -87,6 +87,31 @@ class ItsAGramLive:
         m.update(seed.encode('utf-8') + volatile_seed.encode('utf-8'))
         return 'android-' + m.hexdigest()[:16]
 
+    def setCodeChallengeRequired(self, path, code):
+        username_id = path.partition('/')[2].partition('/')[0]
+        data = {'security_code': code,
+                '_uuid': self.uuid,
+                'guid': self.uuid,
+                'device_id': self.device_id,
+                '_uid': username_id,
+                '_csrftoken': self.LastResponse.cookies['csrftoken']}
+
+        self.send_request(path, self.generate_signature(json.dumps(data)), True)
+
+    def getCodeChallengeRequired(self, path, choice=0):
+        username_id = path.partition('/')[2].partition('/')[0]
+
+        self.send_request(path, None, True)
+
+        data = {'choice': choice,
+                '_uuid': self.uuid,
+                'guid': self.uuid,
+                'device_id': self.device_id,
+                '_uid': username_id,
+                '_csrftoken': self.LastResponse.cookies['csrftoken']}
+
+        self.send_request(path, self.generate_signature(json.dumps(data)), True)
+
     def login(self, force=False):
         if not self.isLoggedIn or force:
             if self.send_request(endpoint='si/fetch_headers/?challenge_type=signup&guid=' + self.generate_UUID(False),
@@ -101,6 +126,14 @@ class ItsAGramLive:
                         'login_attempt_count': '0'}
 
                 if self.send_request('accounts/login/', post=self.generate_signature(json.dumps(data)), login=True):
+                    if "message" in self.LastJson:
+                        if self.LastJson['message'] == 'challenge_required':
+                            path = self.LastJson['challenge']['api_path'][1:]
+                            choice = 0  # 0 - SMS; 1 - EMail
+                            self.getCodeChallengeRequired(path, choice)
+                            code = input('Enter the code: ')
+                            self.setCodeChallengeRequired(path, code)
+
                     if "two_factor_required" not in self.LastJson:
                         self.isLoggedIn = True
                         self.username_id = self.LastJson["logged_in_user"]["pk"]
@@ -123,7 +156,7 @@ class ItsAGramLive:
         data = {
             'verification_method': 0,
             'verification_code': verification_code,
-            'trust_this_device': 1,
+            'trust_this_device': 0,
             'two_factor_identifier': self.LastJson['two_factor_info']['two_factor_identifier'],
             '_csrftoken': self.LastResponse.cookies['csrftoken'],
             'username': self.username,
