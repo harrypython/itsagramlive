@@ -88,26 +88,22 @@ class ItsAGramLive:
         return 'android-' + m.hexdigest()[:16]
 
     def setCodeChallengeRequired(self, path, code):
-        username_id = path.partition('/')[2].partition('/')[0]
         data = {'security_code': code,
                 '_uuid': self.uuid,
                 'guid': self.uuid,
                 'device_id': self.device_id,
-                '_uid': username_id,
+                '_uid': self.username_id,
                 '_csrftoken': self.LastResponse.cookies['csrftoken']}
 
         self.send_request(path, self.generate_signature(json.dumps(data)), True)
 
     def getCodeChallengeRequired(self, path, choice=0):
-        username_id = path.partition('/')[2].partition('/')[0]
-
-        self.send_request(path, None, True)
 
         data = {'choice': choice,
                 '_uuid': self.uuid,
                 'guid': self.uuid,
                 'device_id': self.device_id,
-                '_uid': username_id,
+                '_uid': self.username_id,
                 '_csrftoken': self.LastResponse.cookies['csrftoken']}
 
         self.send_request(path, self.generate_signature(json.dumps(data)), True)
@@ -126,14 +122,6 @@ class ItsAGramLive:
                         'login_attempt_count': '0'}
 
                 if self.send_request('accounts/login/', post=self.generate_signature(json.dumps(data)), login=True):
-                    if "message" in self.LastJson:
-                        if self.LastJson['message'] == 'challenge_required':
-                            path = self.LastJson['challenge']['api_path'][1:]
-                            choice = 0  # 0 - SMS; 1 - EMail
-                            self.getCodeChallengeRequired(path, choice)
-                            code = input('Enter the code: ')
-                            self.setCodeChallengeRequired(path, code)
-
                     if "two_factor_required" not in self.LastJson:
                         self.isLoggedIn = True
                         self.username_id = self.LastJson["logged_in_user"]["pk"]
@@ -202,11 +190,19 @@ class ItsAGramLive:
             if self.LastJson['two_factor_required']:
                 print("Two factor required")
                 return True
+        elif 'message' in self.LastJson and self.LastResponse.status_code == 400:
+            if self.LastJson['message'] == 'challenge_required':
+                path = self.LastJson['challenge']['api_path'][1:]
+                choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
+                self.getCodeChallengeRequired(path, choice)
+                code = input('Enter the code: ')
+                self.setCodeChallengeRequired(path, code)
         else:
             error_message = " - "
             if "message" in self.LastJson:
                 error_message = self.LastJson['message']
             print('* ERROR({}): {}'.format(self.LastResponse.status_code, error_message))
+            print(self.LastResponse)
             return False
 
     def set_proxy(self, proxy=None):
