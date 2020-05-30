@@ -426,5 +426,8 @@ class ItsAGramLive:
 
     def get_comments(self):
         if self.send_request("live/{}/get_comment/".format(self.broadcast_id)):
-            for comment in self.LastJson['comments']:
-                print(f"{comment['user']['username']} has posted a new comment: {comment['text']}")
+            if 'comments' in self.LastJson:
+                for comment in self.LastJson['comments']:
+                    print(f"{comment['user']['username']} has posted a new comment: {comment['text']}")
+            else:
+                print("There is no comments.")
