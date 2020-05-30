@@ -87,7 +87,7 @@ class ItsAGramLive:
         m.update(seed.encode('utf-8') + volatile_seed.encode('utf-8'))
         return 'android-' + m.hexdigest()[:16]
 
-    def setCodeChallengeRequired(self, path, code):
+    def set_code_challenge_required(self, path, code):
         data = {'security_code': code,
                 '_uuid': self.uuid,
                 'guid': self.uuid,
@@ -97,8 +97,7 @@ class ItsAGramLive:
 
         self.send_request(path, self.generate_signature(json.dumps(data)), True)
 
-    def getCodeChallengeRequired(self, path, choice=0):
-
+    def get_code_challenge_required(self, path, choice=0):
         data = {'choice': choice,
                 '_uuid': self.uuid,
                 'guid': self.uuid,
@@ -194,9 +193,9 @@ class ItsAGramLive:
             if self.LastJson['message'] == 'challenge_required':
                 path = self.LastJson['challenge']['api_path'][1:]
                 choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
-                self.getCodeChallengeRequired(path, choice)
+                self.get_code_challenge_required(path, choice)
                 code = input('Enter the code: ')
-                self.setCodeChallengeRequired(path, code)
+                self.set_code_challenge_required(path, code)
         else:
             error_message = " - "
             if "message" in self.LastJson:
