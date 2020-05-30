@@ -262,6 +262,7 @@ class ItsAGramLive:
                                 '"unmute comments"\n\t '
                                 '"info"\n\t '
                                 '"viewers"\n\t '
+                                '"comments"\n\t '
                                 '"chat"\n\t '
                                 '"wave"\n\t')
 
