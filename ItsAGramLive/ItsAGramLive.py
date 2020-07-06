@@ -56,18 +56,23 @@ class ItsAGramLive:
     IG_SIG_KEY = '4f8732eb9ba7d1c8e8897a75d6474d4eb3f5279137431b2aafb71fafe2abe178'
     SIG_KEY_VERSION = '4'
 
-    def __init__(self):
-        parser = argparse.ArgumentParser(add_help=True)
-        parser.add_argument("-u", "--username", type=str, help="username", required=True)
-        parser.add_argument("-p", "--password", type=str, help="password", required=True)
-        parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
-        args = parser.parse_args()
+    def __init__(self, username='', password=''):
+
+        if bool(username) == False and bool(password) == False:
+            parser = argparse.ArgumentParser(add_help=True)
+            parser.add_argument("-u", "--username", type=str, help="username", required=True)
+            parser.add_argument("-p", "--password", type=str, help="password", required=True)
+            parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
+            args = parser.parse_args()
+
+            username = args.username
+            password = args.password
 
         m = hashlib.md5()
-        m.update(args.username.encode('utf-8') + args.password.encode('utf-8'))
+        m.update(username.encode('utf-8') + password.encode('utf-8'))
         self.device_id = self.generate_device_id(m.hexdigest())
 
-        self.set_user(username=args.username, password=args.password)
+        self.set_user(username=username, password=password)
 
     def set_user(self, username, password):
         self.username = username
