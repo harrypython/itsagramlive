@@ -10,7 +10,7 @@ import pyperclip
 import requests
 
 from .http import ClientCookieJar
-from .util import to_json
+from .util import to_json, from_json
 import urllib.request as compat_urllib_request
 
 # Turn off InsecureRequestWarning
@@ -123,6 +123,11 @@ class ItsAGramLive:
         with open(filename, 'w') as outfile:
             json.dump(self.settings, outfile, default=to_json)
 
+    def load_settings(self, filename):
+        with open(filename) as file_data:
+            cached_auth = json.load(file_data, object_hook=from_json)
+        
+        print(cached_auth)
 
     @property
     def cookie_jar(self):
