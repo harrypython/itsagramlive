@@ -10,7 +10,7 @@ import pyperclip
 import requests
 
 from .http import ClientCookieJar
-
+from .util import to_json
 import urllib.request as compat_urllib_request
 
 # Turn off InsecureRequestWarning
@@ -43,6 +43,7 @@ class ItsAGramLive:
     session_id: str = None
 
     opener = None
+    _cookies = None
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
         "android_version": "28",
@@ -114,9 +115,13 @@ class ItsAGramLive:
             'device_id': self.device_id,
             'ad_id': self.ad_id,
             'session_id': self.session_id,
-            'cookie': self.cookie_jar.dump(),
+            'cookie': self.cookie_jar.dump(self.s.cookies),
             'created_ts': int(time.time())
         }
+    
+    def save_settings(self, filename):
+        with open(filename, 'w') as outfile:
+            json.dump(self.settings, outfile, default=to_json)
 
 
     @property

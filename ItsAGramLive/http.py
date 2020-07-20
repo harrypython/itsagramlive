@@ -31,5 +31,7 @@ class ClientCookieJar(compat_cookiejar.CookieJar):
         """For backward compatibility"""
         return self.auth_expires
 
-    def dump(self):
+    def dump(self, force_cookies=None):
+        if force_cookies:
+            return compat_pickle.dumps(force_cookies)
         return compat_pickle.dumps(self._cookies)
