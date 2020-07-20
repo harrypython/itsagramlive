@@ -35,7 +35,7 @@ class ItsAGramLive:
     broadcast_id: int = None
     stream_key: str = None
     stream_server: str = None
-
+    ad_id: str = None
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
         "android_version": "28",
@@ -74,23 +74,60 @@ class ItsAGramLive:
 
         self.set_user(username=username, password=password)
 
+        self.ad_id = self.generate_adid()
+
+    @property
+    def settings(self):
+        """Helper property that extracts the settings that you should cache
+        in addition to username and password."""
+        return {
+            'uuid': self.uuid,
+            'device_id': self.device_id,
+            'ad_id': self.ad_id,
+            'session_id': None, # !todo
+            'cookie': None, # !todo
+            'created_ts': int(time.time())
+        }
+
     def set_user(self, username, password):
         self.username = username
         self.password = password
         self.uuid = self.generate_UUID(True)
 
-    def generate_UUID(self, t: bool = True):
-        generated_uuid = str(uuid.uuid4())
-        if t:
-            return generated_uuid
+    def generate_UUID(self, t: bool = True, seed=None):
+
+        if seed:
+            m = hashlib.md5()
+            m.update(seed.encode('utf-8'))
+            new_uuid = uuid.UUID(m.hexdigest())
+
+            return str(new_uuid)
         else:
-            return generated_uuid.replace('-', '')
+            generated_uuid = str(uuid.uuid4())
+            if t:
+                return generated_uuid
+            else:
+                return generated_uuid.replace('-', '')
 
     def generate_device_id(self, seed):
         volatile_seed = "12345"
         m = hashlib.md5()
         m.update(seed.encode('utf-8') + volatile_seed.encode('utf-8'))
         return 'android-' + m.hexdigest()[:16]
+
+    def generate_adid(self, seed=None):
+        """
+        Generate an Advertising ID based on the login username since
+        the Google Ad ID is a personally identifying but resettable ID.
+        """
+
+        modified_seed = seed or self.username
+        if modified_seed:
+            # Do some trivial mangling of original seed
+            sha2 = hashlib.sha256()
+            sha2.update(modified_seed.encode('utf-8'))
+            modified_seed = sha2.hexdigest()
+        return self.generate_UUID(seed=modified_seed)
 
     def set_code_challenge_required(self, path, code):
         data = {'security_code': code,
