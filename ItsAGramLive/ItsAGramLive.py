@@ -8,9 +8,13 @@ import uuid
 
 import pyperclip
 import requests
+
+from .http import ClientCookieJar
+
+import urllib.request as compat_urllib_request
+
 # Turn off InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
@@ -37,6 +41,8 @@ class ItsAGramLive:
     stream_server: str = None
     ad_id: str = None
     session_id: str = None
+
+    opener = None
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
         "android_version": "28",
@@ -79,6 +85,26 @@ class ItsAGramLive:
         self.session_id = self.generate_UUID()
         self.ad_id = self.generate_adid()
 
+        handlers = []
+
+        # Handle Cookies
+        cookie_string = None
+        cookie_jar = ClientCookieJar(cookie_string=cookie_string)
+
+        # Check Cookies expiration time
+        if cookie_string and cookie_jar.auth_expires and int(time.time()) >= cookie_jar.auth_expires:
+            raise Exception('Cookie expired at {0!s}'.format(cookie_jar.auth_expires))
+
+        cookie_handler = compat_urllib_request.HTTPCookieProcessor(cookie_jar)
+
+        handlers.extend([
+            compat_urllib_request.HTTPHandler(),
+            cookie_handler])
+
+        opener = compat_urllib_request.build_opener(*handlers)
+        opener.cookie_jar = cookie_jar
+        self.opener = opener
+        
     @property
     def settings(self):
         """Helper property that extracts the settings that you should cache
@@ -87,7 +113,7 @@ class ItsAGramLive:
             'uuid': self.uuid,
             'device_id': self.device_id,
             'ad_id': self.ad_id,
-            'session_id': None, # !todo
+            'session_id': self.session_id,
             'cookie': None, # !todo
             'created_ts': int(time.time())
         }
