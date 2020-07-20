@@ -104,7 +104,7 @@ class ItsAGramLive:
         opener = compat_urllib_request.build_opener(*handlers)
         opener.cookie_jar = cookie_jar
         self.opener = opener
-        
+
     @property
     def settings(self):
         """Helper property that extracts the settings that you should cache
@@ -114,9 +114,15 @@ class ItsAGramLive:
             'device_id': self.device_id,
             'ad_id': self.ad_id,
             'session_id': self.session_id,
-            'cookie': None, # !todo
+            'cookie': self.cookie_jar.dump(),
             'created_ts': int(time.time())
         }
+
+
+    @property
+    def cookie_jar(self):
+        """The client's cookiejar instance."""
+        return self.opener.cookie_jar
 
     def set_user(self, username, password):
         self.username = username
