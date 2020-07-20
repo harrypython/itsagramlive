@@ -36,6 +36,7 @@ class ItsAGramLive:
     stream_key: str = None
     stream_server: str = None
     ad_id: str = None
+    session_id: str = None
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
         "android_version": "28",
@@ -74,6 +75,8 @@ class ItsAGramLive:
 
         self.set_user(username=username, password=password)
 
+        # App session id
+        self.session_id = self.generate_UUID()
         self.ad_id = self.generate_adid()
 
     @property
@@ -103,7 +106,7 @@ class ItsAGramLive:
 
             return str(new_uuid)
         else:
-            generated_uuid = str(uuid.uuid4())
+            generated_uuid = str(uuid.uuid1()) # change from uuid 4 to 1 for better use cases
             if t:
                 return generated_uuid
             else:
