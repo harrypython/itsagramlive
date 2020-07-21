@@ -39,7 +39,6 @@ class ItsAGramLive:
     broadcast_id: int = None
     stream_key: str = None
     stream_server: str = None
-    ad_id: str = None
     session_id: str = None
 
     opener = None
@@ -84,27 +83,7 @@ class ItsAGramLive:
 
         # App session id
         self.session_id = self.generate_UUID()
-        self.ad_id = self.generate_adid()
 
-        handlers = []
-
-        # Handle Cookies
-        cookie_string = None
-        cookie_jar = ClientCookieJar(cookie_string=cookie_string)
-
-        # Check Cookies expiration time
-        if cookie_string and cookie_jar.auth_expires and int(time.time()) >= cookie_jar.auth_expires:
-            raise Exception('Cookie expired at {0!s}'.format(cookie_jar.auth_expires))
-
-        cookie_handler = compat_urllib_request.HTTPCookieProcessor(cookie_jar)
-
-        handlers.extend([
-            compat_urllib_request.HTTPHandler(),
-            cookie_handler])
-
-        opener = compat_urllib_request.build_opener(*handlers)
-        opener.cookie_jar = cookie_jar
-        self.opener = opener
 
     @property
     def settings(self):
@@ -113,7 +92,6 @@ class ItsAGramLive:
         return {
             'uuid': self.uuid,
             'device_id': self.device_id,
-            'ad_id': self.ad_id,
             'session_id': self.session_id,
             'cookie': self.cookie_jar.dump(self.s.cookies),
             'created_ts': int(time.time())
@@ -124,10 +102,21 @@ class ItsAGramLive:
             json.dump(self.settings, outfile, default=to_json)
 
     def load_settings(self, filename):
+        """load all the settings"""
         with open(filename) as file_data:
             cached_auth = json.load(file_data, object_hook=from_json)
         
-        print(cached_auth)
+        self.load_cookies(cached_auth['cookie'])
+        self.uuid = cached_auth['uuid']
+        self.device_id = cached_auth['device_id']
+        self.session_id= cached_auth['session_id']
+        
+        self.isLoggedIn = True
+
+    def load_cookies(self, cookie_string):
+        """Loads cookie from Cookiestring to Cookie jar and then import it to session"""
+        cookie_jar = ClientCookieJar(cookie_string=cookie_string)
+        self.s.cookies = cookie_jar._cookies
 
     @property
     def cookie_jar(self):
@@ -140,7 +129,6 @@ class ItsAGramLive:
         self.uuid = self.generate_UUID(True)
 
     def generate_UUID(self, t: bool = True, seed=None):
-
         if seed:
             m = hashlib.md5()
             m.update(seed.encode('utf-8'))
@@ -159,20 +147,6 @@ class ItsAGramLive:
         m = hashlib.md5()
         m.update(seed.encode('utf-8') + volatile_seed.encode('utf-8'))
         return 'android-' + m.hexdigest()[:16]
-
-    def generate_adid(self, seed=None):
-        """
-        Generate an Advertising ID based on the login username since
-        the Google Ad ID is a personally identifying but resettable ID.
-        """
-
-        modified_seed = seed or self.username
-        if modified_seed:
-            # Do some trivial mangling of original seed
-            sha2 = hashlib.sha256()
-            sha2.update(modified_seed.encode('utf-8'))
-            modified_seed = sha2.hexdigest()
-        return self.generate_UUID(seed=modified_seed)
 
     def set_code_challenge_required(self, path, code):
         data = {'security_code': code,
