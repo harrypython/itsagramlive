@@ -41,6 +41,8 @@ class ItsAGramLive:
     stream_server: str = None
 
     cookie_jar = None
+
+    save_settings: bool = False
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
         "android_version": "28",
@@ -68,10 +70,15 @@ class ItsAGramLive:
             parser.add_argument("-u", "--username", type=str, help="username", required=True)
             parser.add_argument("-p", "--password", type=str, help="password", required=True)
             parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
+            parser.add_argument("-s", "--save", help="save settings to auth.json",action='store_true')
+            
             args = parser.parse_args()
 
             username = args.username
             password = args.password
+
+            if args.save:
+                self.save_settings = True
 
         m = hashlib.md5()
         m.update(username.encode('utf-8') + password.encode('utf-8'))
@@ -96,7 +103,7 @@ class ItsAGramLive:
             'created_ts': int(time.time())
         }
     
-    def save_settings(self, filename):
+    def export_settings(self, filename):
         """save all settings to json files"""
         with open(filename, 'w') as outfile:
             json.dump(self.settings, outfile, default=to_json)
@@ -279,6 +286,10 @@ class ItsAGramLive:
         print("Let's do it!")
         if self.isLoggedIn or self.login():
             print("You'r logged in")
+            
+            if self.save_settings:
+                self.export_settings('auth.json')                
+                print('Settings exported to auth.json!')
 
             if self.create_broadcast():
                 print("Broadcast ID: {}")
