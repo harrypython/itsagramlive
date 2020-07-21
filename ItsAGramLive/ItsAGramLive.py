@@ -277,7 +277,7 @@ class ItsAGramLive:
 
     def start(self):
         print("Let's do it!")
-        if self.login():
+        if self.isLoggedIn or self.login():
             print("You'r logged in")
 
             if self.create_broadcast():
