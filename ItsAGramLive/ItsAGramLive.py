@@ -39,10 +39,8 @@ class ItsAGramLive:
     broadcast_id: int = None
     stream_key: str = None
     stream_server: str = None
-    session_id: str = None
 
-    opener = None
-    _cookies = None
+    cookie_jar = None
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
         "android_version": "28",
@@ -81,9 +79,10 @@ class ItsAGramLive:
 
         self.set_user(username=username, password=password)
 
-        # App session id
-        self.session_id = self.generate_UUID()
-
+        # Handle Cookies
+        cookie_string = None
+        cookie_jar = ClientCookieJar(cookie_string=cookie_string)
+        self.cookie_jar = cookie_jar
 
     @property
     def settings(self):
@@ -92,36 +91,31 @@ class ItsAGramLive:
         return {
             'uuid': self.uuid,
             'device_id': self.device_id,
-            'session_id': self.session_id,
             'cookie': self.cookie_jar.dump(self.s.cookies),
+            'isLoggedIn': self.isLoggedIn, # !todo: check expiration date cookies
             'created_ts': int(time.time())
         }
     
     def save_settings(self, filename):
+        """save all settings to json files"""
         with open(filename, 'w') as outfile:
             json.dump(self.settings, outfile, default=to_json)
 
     def load_settings(self, filename):
-        """load all the settings"""
+        """load all the settings from json"""
         with open(filename) as file_data:
             cached_auth = json.load(file_data, object_hook=from_json)
         
         self.load_cookies(cached_auth['cookie'])
         self.uuid = cached_auth['uuid']
         self.device_id = cached_auth['device_id']
-        self.session_id= cached_auth['session_id']
-        
-        self.isLoggedIn = True
+
+        self.isLoggedIn = cached_auth['isLoggedIn']
 
     def load_cookies(self, cookie_string):
-        """Loads cookie from Cookiestring to Cookie jar and then import it to session"""
+        """Loads cookie from Cookiestring to Cookie jar and then import it to session's cookiejar"""
         cookie_jar = ClientCookieJar(cookie_string=cookie_string)
         self.s.cookies = cookie_jar._cookies
-
-    @property
-    def cookie_jar(self):
-        """The client's cookiejar instance."""
-        return self.opener.cookie_jar
 
     def set_user(self, username, password):
         self.username = username
