@@ -65,7 +65,7 @@ password='bar'
 
 '''Saving/exporting settings to json'''
 live.login() # Login first before exporting any settings
-live.save_settings('auth.json') # It will export the settings to auth.json
+live.export_settings('auth.json') # It will export the settings to auth.json
 
 '''Loading/importing settings from json'''
 live.import_settings('auth.json') # settings loaded!
