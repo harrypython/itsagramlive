@@ -63,8 +63,15 @@ class ItsAGramLive:
     IG_SIG_KEY = '4f8732eb9ba7d1c8e8897a75d6474d4eb3f5279137431b2aafb71fafe2abe178'
     SIG_KEY_VERSION = '4'
 
-    def __init__(self, username='', password=''):
+    def __init__(self, username='', password='', settings='', auth=''):
+        """ItsAGramLive Instance
 
+        Args:
+            username (str, optional): Username. Defaults to ''.
+            password (str, optional): Password. Defaults to ''.
+            settings (str, optional): filename. Defaults to ''.
+            auth (dict, optional): python dict with configured settings. Defaults to ''.
+        """
         if bool(username) == False and bool(password) == False:
             parser = argparse.ArgumentParser(add_help=True)
             parser.add_argument("-u", "--username", type=str, help="username", required=True)
@@ -79,6 +86,11 @@ class ItsAGramLive:
 
             if args.save:
                 self.save_settings = True
+        
+        if settings:
+            self.import_settings(settings)
+        elif auth:
+            self.load_settings(auth)
 
         m = hashlib.md5()
         m.update(username.encode('utf-8') + password.encode('utf-8'))
