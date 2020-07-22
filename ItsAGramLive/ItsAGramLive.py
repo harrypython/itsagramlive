@@ -72,7 +72,7 @@ class ItsAGramLive:
             settings (str, optional): filename. Defaults to ''.
             auth (dict, optional): python dict with configured settings. Defaults to ''.
         """
-        if bool(username) == False and bool(password) == False:
+        if bool(username) == False and bool(password) == False and bool(auth) == False and bool(settings) == False:
             parser = argparse.ArgumentParser(add_help=True)
             parser.add_argument("-u", "--username", type=str, help="username", required=True)
             parser.add_argument("-p", "--password", type=str, help="password", required=True)
