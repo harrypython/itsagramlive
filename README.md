@@ -68,7 +68,7 @@ live.login() # Login first before exporting any settings
 live.save_settings('auth.json') # It will export the settings to auth.json
 
 '''Loading/importing settings from json'''
-live.load_settings('auth.json') # settings loaded!
+live.import_settings('auth.json') # settings loaded!
 # Now you can use other command/api without even need to re-login anymore
 # for example I want to run CLI mode:
 live.start()

@@ -108,15 +108,20 @@ class ItsAGramLive:
         with open(filename, 'w') as outfile:
             json.dump(self.settings, outfile, default=to_json)
 
-    def load_settings(self, filename):
-        """load all the settings from json"""
+    def import_settings(self, filename):
+        """import and load settings from file json"""
         with open(filename) as file_data:
             cached_auth = json.load(file_data, object_hook=from_json)
+        
+        self.load_settings(cached_auth)
+        return cached_auth
+
+    def load_settings(self, cached_auth):
+        """load all the settings from python dictionary"""
         
         self.load_cookies(cached_auth['cookie'])
         self.uuid = cached_auth['uuid']
         self.device_id = cached_auth['device_id']
-
         self.isLoggedIn = cached_auth['isLoggedIn']
 
     def load_cookies(self, cookie_string):
