@@ -410,7 +410,6 @@ class ItsAGramLive:
         return False
 
     def get_post_live_thumbnails(self):
-        # return "https://steemitimages.com/DQme2ovkXeGA9Kog5wgv9rcguK7cKZhfxVpfSeeYgfxF6KC/FB_PNG_PS_Edit2017-12_Trinh-Bikini-Shoot-MLE_DSC8828%201%201.png"
         if self.send_request(endpoint="live/{}/get_post_live_thumbnails/".format(self.broadcast_id)):
             return self.LastJson.get("thumbnails")[int(len(self.LastJson.get("thumbnails")) / 2)]
 
