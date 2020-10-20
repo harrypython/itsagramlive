@@ -66,3 +66,6 @@ Please make sure to update tests as appropriate.
 ## Buy me a coffee
 
 <a href="https://www.buymeacoffee.com/harrypython" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 37px !important;" ></a>
+
+## Instagram Bot
+Check my Instagram Bot: [BurbnBot](https://github.com/harrypython/BurbnBot)
