@@ -1,2 +1,3 @@
 pyperclip>=1.8.0
 requests>=2.23.0
+Pillow~=8.0.0
