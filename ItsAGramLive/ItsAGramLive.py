@@ -2,14 +2,16 @@ import argparse
 import hashlib
 import hmac
 import json
+import os
 import time
 import urllib
 import uuid
-
+import tempfile
 import pyperclip
 import requests
 # Turn off InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from PIL import Image
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -160,18 +162,23 @@ class ItsAGramLive:
         else:
             return False
 
-    def send_request(self, endpoint, post=None, login=False):
+    def send_request(self, endpoint, post=None, login=False, headers: dict = {}):
         verify = False  # don't show request warning
 
         if not self.isLoggedIn and not login:
             raise Exception("Not logged in!\n")
 
-        self.s.headers.update({'Connection': 'close',
-                               'Accept': '*/*',
-                               'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                               'Cookie2': '$Version=1',
-                               'Accept-Language': 'en-US',
-                               'User-Agent': self.USER_AGENT})
+        if not len(headers) > 0:
+            headers = {
+                'Connection': 'close',
+                'Accept': '*/*',
+                'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Cookie2': '$Version=1',
+                'Accept-Language': 'en-US',
+                'User-Agent': self.USER_AGENT
+            }
+
+        self.s.headers.update(headers)
 
         while True:
             try:
@@ -402,10 +409,62 @@ class ItsAGramLive:
             return True
         return False
 
-    def add_to_post_live(self):
-        data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
-        if self.send_request(endpoint='live/{}/add_to_post_live/'.format(self.broadcast_id),
-                             post=self.generate_signature(data)):
+    def get_post_live_thumbnails(self):
+        # return "https://steemitimages.com/DQme2ovkXeGA9Kog5wgv9rcguK7cKZhfxVpfSeeYgfxF6KC/FB_PNG_PS_Edit2017-12_Trinh-Bikini-Shoot-MLE_DSC8828%201%201.png"
+        if self.send_request(endpoint="live/{}/get_post_live_thumbnails/".format(self.broadcast_id)):
+            return self.LastJson.get("thumbnails")[int(len(self.LastJson.get("thumbnails")) / 2)]
+
+    def upload_live_thumbnails(self):
+        im1 = Image.open(requests.get(self.get_post_live_thumbnails(), stream=True).raw)
+        size = 1080, 1920
+        im1 = im1.resize(size, Image.ANTIALIAS)
+        upload_id = str(int(time.time() * 1000))
+        link = os.path.join(tempfile.gettempdir(), "{}.jpg".format(upload_id))
+        im1.save(link, "JPEG", quality=100)
+
+        upload_idforurl = "{}_0_{}".format(upload_id, str(hash(os.path.basename(link))))
+
+        rupload_params = {
+            "retry_context": '{"num_step_auto_retry":0,"num_reupload":0,"num_step_manual_retry":0}',
+            "media_type": "1",
+            "xsharing_user_ids": "[]",
+            "upload_id": upload_id,
+            "image_compression": json.dumps(
+                {"lib_name": "moz", "lib_version": "3.1.m", "quality": "80"}
+            ),
+        }
+
+        h = {
+            "Accept-Encoding": "gzip",
+            "X-Instagram-Rupload-Params": json.dumps(rupload_params),
+            "X-Entity-Type": "image/jpeg",
+            "Offset": "0",
+            "X-Entity-Name": upload_idforurl,
+            "X-Entity-Length": str(os.path.getsize(link)),
+            "Content-Type": "application/octet-stream",
+            "Content-Length": str(os.path.getsize(link)),
+            "Accept-Encoding": "gzip",
+        }
+
+        data = open(link, 'rb').read()
+
+        if self.send_request(endpoint="../../rupload_igphoto/{}".format(upload_idforurl), post=data, headers=h):
+            if self.LastJson.get('status') == 'ok':
+                return self.LastJson.get('upload_id')
+
+    def add_post_live_to_igtv(self, description, title):
+        data = json.dumps(
+            {
+                "_csrftoken": self.token,
+                "_uuid": self.uuid,
+                "broadcast_id": self.broadcast_id,
+                "cover_upload_id": self.upload_live_thumbnails(),
+                "description": description,
+                "title": title,
+                "igtv_share_preview_to_feed": 1,
+            }
+        )
+        if self.send_request(endpoint='live/add_post_live_to_igtv/', post=self.generate_signature(data)):
             print('Live Posted to Story!')
             return True
         return False
@@ -419,10 +478,13 @@ class ItsAGramLive:
 
     def stop(self):
         self.end_broadcast()
-        print('Save Live replay to story ? <y/n>')
+        print('Save Live replay to IGTV ? <y/n>')
         save = input('command> ')
         if save == 'y':
-            self.add_to_post_live()
+            title = input("Title: ")
+            description = input("Description: ")
+            print("Please wait...")
+            self.add_post_live_to_igtv(description, title)
         else:
             self.delete_post_live()
         print('Exiting...')
