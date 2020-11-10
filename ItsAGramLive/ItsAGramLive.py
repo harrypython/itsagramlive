@@ -242,9 +242,16 @@ class ItsAGramLive:
                 print("* Broadcast ID: {}".format(self.broadcast_id))
                 print("* Server URL: {}".format(self.stream_server))
                 print("* Server Key: {}".format(self.stream_key))
-                print("The stream key was automatically copied to your clipboard")
+
+                try:
+                    pyperclip.copy(self.stream_key)
+                    print("The stream key was automatically copied to your clipboard")
+                except pyperclip.PyperclipException as headless_error:
+                    print("Could not find a copy/paste mechanism for your system")
+                    pass
 
                 print("Press Enter after your setting your streaming software.")
+
                 if self.start_broadcast():
                     self.is_running = True
 
@@ -382,8 +389,6 @@ class ItsAGramLive:
 
             self.stream_server = upload_url[0]
             self.stream_key = "{}{}".format(str(self.broadcast_id), upload_url[1])
-
-            pyperclip.copy(self.stream_key)
 
             return True
 
