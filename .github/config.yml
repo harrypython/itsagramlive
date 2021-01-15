@@ -10,12 +10,7 @@ probotTemplateEnforcerLabelToAdd: needs-more-info
 # Will fail if the issue's body is equal to a provided template
 checkIssueTemplate: true
 
-# *OPTIONAL* Require Pull Requests to contain more information than what is provided in the PR template
-# Will fail if the pull request's body is equal to the provided template
-checkPullRequestTemplate: false
-
 # *OPTIONAL* Only warn about insufficient information on these event types
 # Keys must be lowercase. Valid values are 'issue' and 'pullRequest'
 probotTemplateEnforcerOn:
-  pullRequest: false
   issue: true
