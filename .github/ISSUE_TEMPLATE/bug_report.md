@@ -1,7 +1,7 @@
 
 ---
 name: Bug report
-about:  **Please use!**
+about: Please USE!
 title: ''
 labels: ''
 assignees: ''
