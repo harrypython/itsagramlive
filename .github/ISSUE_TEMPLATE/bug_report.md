@@ -28,9 +28,9 @@ If applicable, add screenshots to help explain your problem.
  - Python version: [python -V]
 
 **Settings (please complete the following information):**
- - Are you using proxy?
- - Are you using two-factor authentication by text message (SMS)?
- - Are you using two-factor authentication by a third party authentication app (such as Duo Mobile or Google Authenticator)?
+ - [ ] Are you using proxy?
+ - [ ] Are you using two-factor authentication by text message (SMS)?
+ - [ ] Are you using two-factor authentication by a third party authentication app (such as Duo Mobile or Google Authenticator)?
 
 **Additional context**
 Add any other context about the problem here.
