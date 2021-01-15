@@ -1,11 +1,9 @@
-
 ---
 name: Bug report
-about: Please USE!
+about: Please USE.
 title: ''
 labels: ''
 assignees: ''
-
 ---
 
 **Describe the bug**
