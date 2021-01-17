@@ -128,6 +128,10 @@ class ItsAGramLive:
                         'login_attempt_count': '0'}
 
                 if self.send_request('accounts/login/', post=self.generate_signature(json.dumps(data)), login=True):
+                    if self.LastJson['error_type'] == 'bad_password':
+                        print(self.LastJson['message'])
+                        return False
+
                     if "two_factor_required" not in self.LastJson:
                         self.isLoggedIn = True
                         self.username_id = self.LastJson["logged_in_user"]["pk"]
@@ -234,7 +238,10 @@ class ItsAGramLive:
 
     def start(self):
         print("Let's do it!")
-        if self.login():
+        if not self.login():
+            print("Error {}".format(self.LastResponse.status_code))
+            print(json.loads(self.LastResponse.text).get("message"))
+        else:
             print("You'r logged in")
 
             if self.create_broadcast():
@@ -473,13 +480,6 @@ class ItsAGramLive:
             return True
         return False
 
-    def delete_post_live(self):
-        data = json.dumps({'_uuid': self.uuid, '_uid': self.username_id, '_csrftoken': self.token})
-        if self.send_request(endpoint='live/{}/delete_post_live/'.format(self.broadcast_id),
-                             post=self.generate_signature(data)):
-            return True
-        return False
-
     def stop(self):
         self.end_broadcast()
         print('Save Live replay to IGTV ? <y/n>')
@@ -489,8 +489,7 @@ class ItsAGramLive:
             description = input("Description: ")
             print("Please wait...")
             self.add_post_live_to_igtv(description, title)
-        else:
-            self.delete_post_live()
+
         print('Exiting...')
         self.is_running = False
         print('Bye bye')
