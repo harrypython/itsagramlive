@@ -10,7 +10,7 @@ with open("requirements.txt") as f:
 
 setuptools.setup(
     name='ItsAGramLive',
-    version='1.4.3',
+    version='1.4.4',
     packages=setuptools.find_packages(),
     url='https://github.com/harrypython/itsagramlive',
     license='GPL-3.0',
