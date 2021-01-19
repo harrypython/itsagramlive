@@ -67,11 +67,14 @@ class ItsAGramLive:
             parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
             args = parser.parse_args()
 
+            username = args.username
+            password = args.password
+
         m = hashlib.md5()
-        m.update(args.username.encode('utf-8') + args.password.encode('utf-8'))
+        m.update(username.encode('utf-8') + password.encode('utf-8'))
         self.device_id = self.generate_device_id(m.hexdigest())
 
-        self.set_user(username=args.username, password=args.password)
+        self.set_user(username=username, password=password)
 
     def set_user(self, username, password):
         self.username = username
@@ -282,6 +285,13 @@ class ItsAGramLive:
                         elif cmd == 'comments':
                             self.get_comments()
 
+                        elif cmd[:11] == 'pin comment':
+                            to_send = cmd[12:]
+                            if to_send:
+                                self.pin_comment(to_send)
+                            else:
+                                print('usage: chat <text to chat>')
+
                         elif cmd[:4] == 'chat':
                             to_send = cmd[5:]
                             if to_send:
@@ -375,6 +385,7 @@ class ItsAGramLive:
         if self.send_request("live/{}/comment/".format(self.broadcast_id), post=self.generate_signature(data)):
             if self.LastJson['status'] == 'ok':
                 return True
+        return False
 
     def create_broadcast(self):
         data = json.dumps({'_uuid': self.uuid,
@@ -499,3 +510,22 @@ class ItsAGramLive:
                     print(f"{comment['user']['username']} has posted a new comment: {comment['text']}")
             else:
                 print("There is no comments.")
+
+    def pin_comment(self, to_send):
+        if self.send_comment(msg=to_send):
+            if self.send_request("live/{}/get_comment/".format(self.broadcast_id)):
+                data = json.dumps(
+                    {
+                        "_csrftoken": self.token,
+                        "_uid": self.username_id,
+                        "_uuid": self.uuid,
+                        "comment_id": self.LastJson['comments'][-1].get("pk")
+                    })
+                if self.send_request(endpoint='live/{}/pin_comment/'.format(self.broadcast_id),
+                                     post=self.generate_signature(data)):
+                    print('Live Posted to Story!')
+                    self.unmute_comment()
+                    return True
+
+        self.unmute_comment()
+        return False
