@@ -60,21 +60,18 @@ class ItsAGramLive:
 
     def __init__(self, username='', password=''):
 
-        if bool(username) == False and bool(password) == False:
+        if bool(username) is False and bool(password) is False:
             parser = argparse.ArgumentParser(add_help=True)
             parser.add_argument("-u", "--username", type=str, help="username", required=True)
             parser.add_argument("-p", "--password", type=str, help="password", required=True)
             parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
             args = parser.parse_args()
 
-            username = args.username
-            password = args.password
-
         m = hashlib.md5()
-        m.update(username.encode('utf-8') + password.encode('utf-8'))
+        m.update(args.username.encode('utf-8') + args.password.encode('utf-8'))
         self.device_id = self.generate_device_id(m.hexdigest())
 
-        self.set_user(username=username, password=password)
+        self.set_user(username=args.username, password=args.password)
 
     def set_user(self, username, password):
         self.username = username
@@ -128,9 +125,10 @@ class ItsAGramLive:
                         'login_attempt_count': '0'}
 
                 if self.send_request('accounts/login/', post=self.generate_signature(json.dumps(data)), login=True):
-                    if self.LastJson['error_type'] == 'bad_password':
-                        print(self.LastJson['message'])
-                        return False
+                    if "error_type" in self.LastJson:
+                        if self.LastJson['error_type'] == 'bad_password':
+                            print(self.LastJson['message'])
+                            return False
 
                     if "two_factor_required" not in self.LastJson:
                         self.isLoggedIn = True
