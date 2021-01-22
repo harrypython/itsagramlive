@@ -37,6 +37,7 @@ class ItsAGramLive:
     broadcast_id: int = None
     stream_key: str = None
     stream_server: str = None
+    pinned_comment_id: str = None
 
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
@@ -285,12 +286,15 @@ class ItsAGramLive:
                         elif cmd == 'comments':
                             self.get_comments()
 
-                        elif cmd[:11] == 'pin comment':
-                            to_send = cmd[12:]
+                        elif cmd[:3] == 'pin':
+                            to_send = cmd[4:]
                             if to_send:
                                 self.pin_comment(to_send)
                             else:
                                 print('usage: chat <text to chat>')
+
+                        elif cmd[:5] == 'unpin':
+                            self.unpin_comment()
 
                         elif cmd[:4] == 'chat':
                             to_send = cmd[5:]
@@ -514,18 +518,32 @@ class ItsAGramLive:
     def pin_comment(self, to_send):
         if self.send_comment(msg=to_send):
             if self.send_request("live/{}/get_comment/".format(self.broadcast_id)):
+                for comment in [comment for comment in self.LastJson['comments']]:
+                    if comment.get("text") == to_send:
+                        self.pinned_comment_id = comment.get("pk")
                 data = json.dumps(
                     {
                         "_csrftoken": self.token,
                         "_uid": self.username_id,
                         "_uuid": self.uuid,
-                        "comment_id": self.LastJson['comments'][-1].get("pk")
+                        "comment_id": self.pinned_comment_id
                     })
                 if self.send_request(endpoint='live/{}/pin_comment/'.format(self.broadcast_id),
                                      post=self.generate_signature(data)):
-                    print('Live Posted to Story!')
-                    self.unmute_comment()
+                    print('Comment pinned!')
                     return True
 
-        self.unmute_comment()
+        return False
+
+    def unpin_comment(self):
+        data = json.dumps({
+            "_csrftoken": self.token,
+            "_uid": self.username_id,
+            "_uuid": self.uuid,
+            "comment_id": self.pinned_comment_id
+        })
+        if self.send_request(endpoint='live/{}/unpin_comment/'.format(self.broadcast_id),
+                             post=self.generate_signature(data)):
+            print('Comment unpinned!')
+            return True
         return False

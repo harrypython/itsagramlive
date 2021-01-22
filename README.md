@@ -107,6 +107,10 @@ python3 live_broadcast_ffmpeg.py -u yourInstagramUsername -p yourPassword -f /pa
   List viewers
 - **chat**
   Send a comment
+- **pin**
+  Send a comment and pin it
+- **unpin**
+  Remove a pinned comment
 - **comments**
   Get the list of comments
 - **wave**
