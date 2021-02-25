@@ -330,6 +330,8 @@ class ItsAGramLive:
                                 '"viewers"\n\t '
                                 '"comments"\n\t '
                                 '"chat"\n\t '
+                                '"pin"\n\t '
+                                '"unpin"\n\t '
                                 '"wave"\n\t')
 
     def get_viewer_list(self):
