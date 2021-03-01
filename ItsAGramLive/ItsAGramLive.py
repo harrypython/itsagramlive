@@ -214,6 +214,7 @@ class ItsAGramLive:
                 self.get_code_challenge_required(path, choice)
                 code = input('Enter the code: ')
                 self.set_code_challenge_required(path, code)
+            # if message is 'Pre-allocated media not Found.'
         else:
             error_message = " - "
             if "message" in self.LastJson:
@@ -479,31 +480,43 @@ class ItsAGramLive:
                 return self.LastJson.get('upload_id')
 
     def add_post_live_to_igtv(self, description, title):
-        data = json.dumps(
-            {
-                "_csrftoken": self.token,
-                "_uuid": self.uuid,
-                "broadcast_id": self.broadcast_id,
-                "cover_upload_id": self.upload_live_thumbnails(),
-                "description": description,
-                "title": title,
-                "igtv_share_preview_to_feed": 1,
-            }
-        )
-        if self.send_request(endpoint='live/add_post_live_to_igtv/', post=self.generate_signature(data)):
+
+        data = json.dumps({
+                           "_csrftoken": self.token,
+                           "_uid": self.username_id,
+                           "_uuid": self.uuid,
+                           "igtv_ads_toggled_on": "0",
+                           "title": title,
+                           "caption": description,
+                           "igtv_share_preview_to_feed": "1",
+                           "upload_id": self.upload_live_thumbnails(),
+                           "device_id": self.device_id,
+                           # "timezone_offset": "-28800",
+                           "source_type": "4",
+                           "keep_shoppable_products": "0",
+                           "igtv_composer_session_id": self.generate_UUID(True),
+                           "device": {"manufacturer": self.DEVICE_SETS['manufacturer'],
+                                      "model": self.DEVICE_SETS['model'],
+                                      "android_version": self.DEVICE_SETS['android_version'],
+                                      "android_release": self.DEVICE_SETS['android_release']},
+                           "extra": {"source_width": 576, "source_height": 944}
+        })
+        self.send_request(endpoint="igtv/igtv_creation_tools/")
+        if self.send_request(endpoint='media/configure_to_igtv/', post=self.generate_signature(data)):
             print('Live Posted to Story!')
             return True
         return False
 
     def stop(self):
         self.end_broadcast()
-        print('Save Live replay to IGTV ? <y/n>')
-        save = input('command> ')
-        if save == 'y':
-            title = input("Title: ")
-            description = input("Description: ")
-            print("Please wait...")
-            self.add_post_live_to_igtv(description, title)
+        # TODO THE NEW ENDPOINT ITS NOT WORKING, NEED TO BE FIXED, FOR NOW I'LL JUST COMMENT THE CODE
+        # print('Save Live replay to IGTV ? <y/n>')
+        # save = input('command> ')
+        # if save == 'y':
+        #     title = input("Title: ")
+        #     description = input("Description: ")
+        #     print("Please wait...")
+        #     self.add_post_live_to_igtv(description, title)
 
         print('Exiting...')
         self.is_running = False
