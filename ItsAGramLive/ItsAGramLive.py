@@ -7,6 +7,7 @@ import time
 import urllib
 import uuid
 import tempfile
+import pyperclip
 import requests
 # Turn off InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -37,6 +38,7 @@ class ItsAGramLive:
     stream_key: str = None
     stream_server: str = None
     pinned_comment_id: str = None
+    basic_headers: dict = {}
 
     DEVICE_SETS = {
         "app_version": "136.0.0.34.124",
@@ -75,6 +77,16 @@ class ItsAGramLive:
         self.device_id = self.generate_device_id(m.hexdigest())
 
         self.set_user(username=username, password=password)
+
+        self.basic_headers = {
+            'Connection': 'close',
+            'Accept': '*/*',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Accept-Encoding': 'gzip, deflate',
+            'Cookie2': '$Version=1',
+            'Accept-Language': 'en-US',
+            'User-Agent': self.USER_AGENT,
+        }
 
     def set_user(self, username, password):
         self.username = username
@@ -173,17 +185,10 @@ class ItsAGramLive:
         if not self.isLoggedIn and not login:
             raise Exception("Not logged in!\n")
 
-        if not len(headers) > 0:
-            headers = {
-                'Connection': 'close',
-                'Accept': '*/*',
-                'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Cookie2': '$Version=1',
-                'Accept-Language': 'en-US',
-                'User-Agent': self.USER_AGENT
-            }
+        h = self.basic_headers
+        h.update(headers)
 
-        self.s.headers.update(headers)
+        self.s.headers.update(h)
 
         while True:
             try:
@@ -206,13 +211,12 @@ class ItsAGramLive:
             if self.LastJson['two_factor_required']:
                 print("Two factor required")
                 return True
-        elif 'message' in self.LastJson and self.LastResponse.status_code == 400:
-            if self.LastJson['message'] == 'challenge_required':
-                path = self.LastJson['challenge']['api_path'][1:]
-                choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
-                self.get_code_challenge_required(path, choice)
-                code = input('Enter the code: ')
-                self.set_code_challenge_required(path, code)
+        elif 'message' in self.LastJson and self.LastResponse.status_code == 400 and self.LastJson['message'] == 'challenge_required':
+            path = self.LastJson['challenge']['api_path'][1:]
+            choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
+            self.get_code_challenge_required(path, choice)
+            code = input('Enter the code: ')
+            self.set_code_challenge_required(path, code)
             # if message is 'Pre-allocated media not Found.'
         else:
             error_message = " - "
@@ -436,12 +440,6 @@ class ItsAGramLive:
             return True
         return False
 
-    def get_igtv_creation_tools(self):
-        if self.send_request(endpoint="igtv/igtv_creation_tools/"):
-            if self.LastJson['status'] == 'ok':
-                return True
-        return False
-
     def get_post_live_thumbnails(self):
         if self.send_request(endpoint="live/{}/get_post_live_thumbnails/".format(self.broadcast_id)):
             return self.LastJson.get("thumbnails")[int(len(self.LastJson.get("thumbnails")) / 2)]
@@ -477,7 +475,7 @@ class ItsAGramLive:
             "X-Entity-Length": str(os.path.getsize(link)),
             "Content-Type": "application/octet-stream",
             "Content-Length": str(os.path.getsize(link)),
-            "Accept-Encoding": "gzip, deflate",
+            "Accept-Encoding": "gzip",
         }
 
         data = open(link, 'rb').read()
@@ -487,58 +485,77 @@ class ItsAGramLive:
                 return self.LastJson.get('upload_id')
 
     def add_post_live_to_igtv(self, description, title):
-
-        data = json.dumps({
-                           "_csrftoken": self.token,
-                           "_uid": self.username_id,
-                           "_uuid": self.uuid,
-                           "igtv_ads_toggled_on": "0",
-                           "title": title,
-                           "caption": description,
-                           "igtv_share_preview_to_feed": "1",
-                           "upload_id": self.upload_live_thumbnails(),
-                           "device_id": self.device_id,
-                           # "timezone_offset": "-28800",
-                           "source_type": "4",
-                           "keep_shoppable_products": "0",
-                           "igtv_composer_session_id": self.generate_UUID(True),
-                           "device": {"manufacturer": self.DEVICE_SETS['manufacturer'],
-                                      "model": self.DEVICE_SETS['model'],
-                                      "android_version": self.DEVICE_SETS['android_version'],
-                                      "android_release": self.DEVICE_SETS['android_release']},
-                           "extra": {"source_width": 576, "source_height": 944}
-        })
-
+        self.end_broadcast()
         h = {
-            "retry_context": '{"num_step_auto_retry":0,"num_reupload":0,"num_step_manual_retry":0}',
-            "is_igtv_video": "1",
-            "IG-U-IG-DIRECT-REGION-HINT: 'FRC',
-            "IG-U-DS-USER-ID": self.username_id,
-            "IG-U-RUR": 'RVA',
-            "DEBUG-IG-USER-ID": self.username_id,
-            "Priority": 'u=3',
-            "X-Bloks-Is-Panorama-Enabled": "1",
-            "X-FB-Client-IP": "1",
-        }
+            'Priority': 'u=3',
+            'User-Agent': self.USER_AGENT,
+            'Accept-Language': 'en-US',
+            'IG-U-DS-USER-ID': str(self.username_id),
+            'IG-INTENDED-USER-ID': str(self.username_id),
+            'Accept-Encoding': 'gzip, deflate',
+            'Host': 'i.instagram.com',
+            'X-FB-HTTP-Engine': 'Liger',
+            'X-FB-Client-IP': 'True',
+            'X-FB-Server-Cluster': 'True',
+            'Connection': 'close',
 
-    #    self.send_request(endpoint="igtv/igtv_creation_tools/")
-        if self.send_request(endpoint='media/configure_to_igtv/', post=self.generate_signature(data), headers = h):
-            print('Live Posted to Story!')
-            return True
+        }
+        if self.send_request(endpoint='igtv/igtv_creation_tools', headers=h):
+            data = json.dumps({
+                "igtv_ads_toggled_on": "0",
+                # "timezone_offset": "-28800",
+                "_csrftoken": str(self.token),
+                "source_type": "4",
+                "_uid": str(self.username_id),
+                "device_id": self.device_id,
+                "keep_shoppable_products": "0",
+                "_uuid": self.uuid,
+                "title": title,
+                "caption": description,
+                "igtv_share_preview_to_feed": "1",
+                "upload_id": self.upload_live_thumbnails(),
+                "igtv_composer_session_id": self.generate_UUID(True),
+                "device": {
+                    "manufacturer": self.DEVICE_SETS["manufacturer"],
+                    "model": self.DEVICE_SETS["model"],
+                    "android_version": self.DEVICE_SETS["android_version"],
+                    "android_release": self.DEVICE_SETS["android_release"]},
+                "extra": {"source_width": 504, "source_height": 896}
+            })
+
+            h = {
+                'X-IG-Device-ID': self.device_id,
+                'is_igtv_video': '1',
+                'retry_context': '{"num_reupload":0,"num_step_auto_retry":0,"num_step_manual_retry":0}',
+                'Priority': 'u=3',
+                'User-Agent': self.USER_AGENT,
+                'IG-U-DS-USER-ID': str(self.username_id),
+                'IG-INTENDED-USER-ID': str(self.username_id),
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Accept-Encoding': 'gzip, deflate',
+                'Host': 'i.instagram.com',
+                'X-FB-HTTP-Engine': 'Liger',
+                'X-FB-Client-IP': 'True',
+                'X-FB-Server-Cluster': 'True',
+                'Connection': 'close',
+            }
+
+            if self.send_request(endpoint='media/configure_to_igtv/', post=self.generate_signature(data), headers=h):
+                print('Live Posted to Story!')
+                return True
         return False
 
     def stop(self):
-        self.end_broadcast()
         # TODO THE NEW ENDPOINT ITS NOT WORKING, NEED TO BE FIXED, FOR NOW I'LL JUST COMMENT THE CODE
-        # print('Save Live replay to IGTV ? <y/n>')
-        # save = input('command> ')
-        # if save == 'y':
-        #     title = input("Title: ")
-        #     description = input("Description: ")
-        #     print("Please wait...")
-        #     self.add_post_live_to_igtv(description, title)
+        print('Save Live replay to IGTV ? <y/n>')
+        save = input('command> ')
+        if save == 'y':
+            title = input("Title: ")
+            description = input("Description: ")
+            self.add_post_live_to_igtv(description, title)
 
         print('Exiting...')
+        self.end_broadcast()
         self.is_running = False
         print('Bye bye')
 
