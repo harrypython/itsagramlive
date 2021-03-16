@@ -546,7 +546,6 @@ class ItsAGramLive:
         return False
 
     def stop(self):
-        # TODO THE NEW ENDPOINT ITS NOT WORKING, NEED TO BE FIXED, FOR NOW I'LL JUST COMMENT THE CODE
         print('Save Live replay to IGTV ? <y/n>')
         save = input('command> ')
         if save == 'y':
