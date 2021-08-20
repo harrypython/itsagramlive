@@ -4,7 +4,7 @@
 
 # It's A Gram Live
 
-It's A Gram Live is a Python script that create a Instagram Live and provide you a rtmp server and stream key to streaming using sofwares like [OBS-Studio](https://obsproject.com/) or [XSplit Broadcaster](https://www.xsplit.com/).
+It's A Gram Live is a Python script that create a Instagram Live and provide you a rtmp server and stream key to streaming using softwares like [OBS-Studio](https://obsproject.com/) or [XSplit Broadcaster](https://www.xsplit.com/).
 
 ## Installation
 
