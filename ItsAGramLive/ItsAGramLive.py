@@ -62,13 +62,19 @@ class ItsAGramLive:
     SIG_KEY_VERSION = '4'
 
     def __init__(self, username='', password='', logging_level='INFO'):
+        logging.basicConfig(level=logging_level)
+        logging.getLogger("urllib3").setLevel(logging_level)
 
         if bool(username) is False and bool(password) is False:
             parser = argparse.ArgumentParser(add_help=True)
             parser.add_argument("-u", "--username", type=str, help="username", required=True)
             parser.add_argument("-p", "--password", type=str, help="password", required=True)
             parser.add_argument("-proxy", type=str, help="Proxy format - user:password@ip:port", default=None)
-            args = parser.parse_args()
+            try:
+                args = parser.parse_args()
+            except SystemExit:
+                logging.fatal('Error while parsing arguments. Did you provide your Username & Password ?')
+                raise Exception('Credentials not provided')
 
             username = args.username
             password = args.password
@@ -89,8 +95,6 @@ class ItsAGramLive:
             'User-Agent': self.USER_AGENT,
         }
 
-        logging.basicConfig(level=logging_level)
-        logging.getLogger("urllib3").setLevel(logging_level)
 
     def set_user(self, username, password):
         self.username = username
