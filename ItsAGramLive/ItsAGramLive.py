@@ -546,10 +546,17 @@ class ItsAGramLive:
         return False
 
     def stop(self, save_to_igtv: bool = None, title = 'Live video', description = 'Live Instagram video.'):
-        save = input('command> ')
-        if save == 'y':
-            title = input("Title: ")
-            description = input("Description: ")
+        final_save = save_to_igtv
+
+        if final_save is None:
+            print('Save Live replay to IGTV ? <y/n>')
+            save_to_igtv = input('command> ')
+            if save_to_igtv == 'y':
+                final_save = 1
+                title = input("Title: ")
+                description = input("Description: ")
+        
+        if final_save:
             self.add_post_live_to_igtv(description, title)
 
         print('Exiting...')
