@@ -12,7 +12,6 @@ import requests
 import logging
 # Turn off InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from PIL import Image
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -460,45 +459,6 @@ class ItsAGramLive:
         if self.send_request(endpoint="live/{}/get_post_live_thumbnails/".format(self.broadcast_id)):
             return self.LastJson.get("thumbnails")[int(len(self.LastJson.get("thumbnails")) / 2)]
 
-    def upload_live_thumbnails(self):
-        im1 = Image.open(requests.get(self.get_post_live_thumbnails(), stream=True).raw)
-        size = 1080, 1920
-        im1 = im1.resize(size, Image.ANTIALIAS)
-        upload_id = str(int(time.time() * 1000))
-        link = os.path.join(tempfile.gettempdir(), "{}.jpg".format(upload_id))
-        im1.save(link, "JPEG", quality=100)
-
-        upload_idforurl = "{}_0_{}".format(upload_id, str(hash(os.path.basename(link))))
-
-        rupload_params = {
-            "retry_context": '{"num_step_auto_retry":0,"num_reupload":0,"num_step_manual_retry":0}',
-            "media_type": "1",
-            "broadcast_id": self.broadcast_id,
-            "is_post_live_igtv":"1",
-            "xsharing_user_ids": "[]",
-            "upload_id": upload_id,
-            "image_compression": json.dumps(
-                {"lib_name": "moz", "lib_version": "3.1.m", "quality": "80"}
-            ),
-        }
-
-        h = {
-            "Accept-Encoding": "gzip",
-            "X-Instagram-Rupload-Params": json.dumps(rupload_params),
-            "X-Entity-Type": "image/jpeg",
-            "Offset": "0",
-            "X-Entity-Name": upload_idforurl,
-            "X-Entity-Length": str(os.path.getsize(link)),
-            "Content-Type": "application/octet-stream",
-            "Content-Length": str(os.path.getsize(link)),
-            "Accept-Encoding": "gzip",
-        }
-
-        data = open(link, 'rb').read()
-
-        if self.send_request(endpoint="../../rupload_igphoto/{}".format(upload_idforurl), post=data, headers=h):
-            if self.LastJson.get('status') == 'ok':
-                return self.LastJson.get('upload_id')
 
     def add_post_live_to_igtv(self, description, title):
         self.end_broadcast()
