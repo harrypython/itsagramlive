@@ -225,7 +225,7 @@ class ItsAGramLive:
             path = self.LastJson['challenge']['api_path'][1:]
             # choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
             self.get_code_challenge_required(path, 1)
-            return self.LastJson['message']
+            raise Exception("challenge_required")
             # code = input('Enter the code: ')
             # self.set_code_challenge_required(path, code)
             # if message is 'Pre-allocated media not Found.'
