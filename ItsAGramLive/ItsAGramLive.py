@@ -223,10 +223,11 @@ class ItsAGramLive:
                 return True
         elif 'message' in self.LastJson and self.LastResponse.status_code == 400 and self.LastJson['message'] == 'challenge_required':
             path = self.LastJson['challenge']['api_path'][1:]
-            choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
-            self.get_code_challenge_required(path, choice)
-            code = input('Enter the code: ')
-            self.set_code_challenge_required(path, code)
+            # choice = int(input('Choose a challenge mode (0 - SMS, 1 - Email): '))
+            self.get_code_challenge_required(path, 1)
+            return self.LastJson['message']
+            # code = input('Enter the code: ')
+            # self.set_code_challenge_required(path, code)
             # if message is 'Pre-allocated media not Found.'
         else:
             error_message = " - "
