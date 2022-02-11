@@ -168,8 +168,7 @@ class ItsAGramLive:
                             self.token = self.LastResponse.cookies["csrftoken"]
                             logging.info('Logged in.')
                             return True
-        logging.error('Error while logging in.')
-        return False
+        raise Exception("bad_password")
 
     def two_factor(self):
         # verification_method': 0 works for sms and TOTP. why? ¯\_ಠ_ಠ_/¯
@@ -429,7 +428,7 @@ class ItsAGramLive:
             self.stream_key = "{}{}".format(str(self.broadcast_id), upload_url[1])
 
             logging.info("Broadcast created.")
-            return True
+            return self
 
         else:
             logging.error("Error while creating broadcast.")
